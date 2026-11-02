@@ -1,0 +1,6 @@
+{
+  "name": "Job Costing - Electrical Estimator",
+  "description": "Professional Job Costing and Electrical Estimating app with real-time multi-tab sync, PWA offline support, PDF quotes, and dark/light modes.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

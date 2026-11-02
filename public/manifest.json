@@ -1,0 +1,17 @@
+{
+  "name": "Job Costing - Electrical Estimator",
+  "short_name": "JobCosting",
+  "description": "Professional Job Costing and Electrical Estimating app with real-time multi-tab sync, PWA offline support, and PDF quotes.",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#0b111e",
+  "theme_color": "#0c1322",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%233b82f6'><polygon points='13 2 3 14 12 14 11 22 21 10 12 10 13 2'/></svg>",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
