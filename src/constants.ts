@@ -1,5 +1,8 @@
 import { CompanySettings, JobQuote } from './types';
 
+export const DEFAULT_GOOGLE_SHEETS_CSV_URL =
+  'https://docs.google.com/spreadsheets/d/e/2PACX-1vQF-dVNCimVYFht-LgwEeKT4rEtW-IDphibc5oSV60YBjLxGn4KGT45nU2U58EfBCYbF0UdDxdoe88r/pub?gid=0&single=true&output=csv';
+
 export const DEFAULT_COMPANY_SETTINGS: CompanySettings = {
   companyName: 'RISHA VISHAL ELECTRICAL',
   subtitle: 'Licensed Electrical Contractors & Engineering Services',
@@ -11,9 +14,22 @@ export const DEFAULT_COMPANY_SETTINGS: CompanySettings = {
   defaultVatPercent: 12.5,
   currencySymbol: '$',
   currencyCode: 'TTD',
+  googleSheetsCsvUrl: DEFAULT_GOOGLE_SHEETS_CSV_URL,
 };
 
 export const COMMON_ELECTRICAL_ITEMS = [
+  // 1. Service Entrance & Utility
+  { sku: 'SRV-001', description: '1 1/2" Heat Shrink', unit: 'ft.', unitCost: 23.95, category: '1. Service Entrance & Utility' },
+  { sku: 'SRV-002', description: '100A 1-Phase Meter Base', unit: 'each', unitCost: 0.00, category: '1. Service Entrance & Utility' },
+  { sku: 'SRV-003', description: '125A 1-Phase Meter Base', unit: 'each', unitCost: 170.00, category: '1. Service Entrance & Utility' },
+  { sku: 'SRV-004', description: '2-Way 100A 1-PH Meter Bank', unit: 'each', unitCost: 1050.00, category: '1. Service Entrance & Utility' },
+  { sku: 'SRV-005', description: '2-Way 200A 1-PH Meter Bank - B.E.L.', unit: 'each', unitCost: 2348.36, category: '1. Service Entrance & Utility' },
+  { sku: 'SRV-006', description: '2-Way 200A 1-PH Meter Bank (M.E. - TQD/ CA Breakers)', unit: 'each', unitCost: 2650.00, category: '1. Service Entrance & Utility' },
+  { sku: 'SRV-007', description: '2-Way 200A 3-PH Meter Bank', unit: 'each', unitCost: 0.00, category: '1. Service Entrance & Utility' },
+  { sku: 'SRV-008', description: '200A 1-Phase Meter Base', unit: 'each', unitCost: 225.00, category: '1. Service Entrance & Utility' },
+  { sku: 'SRV-009', description: '200A 1-Phase Meter Base - Jumbo', unit: 'each', unitCost: 0.00, category: '1. Service Entrance & Utility' },
+  { sku: 'SRV-010', description: '200A 1-Phase Stainless Steel Meter Base', unit: 'each', unitCost: 895.00, category: '1. Service Entrance & Utility' },
+
   // Distribution & Panels
   { category: 'Distribution', description: '100A 12-Space Main Breaker Panel (Outdoor rated)', unit: 'pcs', unitCost: 850.00 },
   { category: 'Distribution', description: '200A 24-Space Main Lug Loadcenter', unit: 'pcs', unitCost: 1450.00 },

@@ -43,11 +43,22 @@ export interface CompanySettings {
   defaultVatPercent: number;
   currencySymbol: string;
   currencyCode: string;
+  googleSheetsCsvUrl?: string;
+}
+
+export interface CatalogItem {
+  id?: string;
+  category: string;
+  description: string;
+  unit: string;
+  unitCost: number;
+  sku?: string;
 }
 
 export interface SyncMessage {
-  type: 'UPDATE_QUOTE' | 'PING' | 'PONG' | 'REQUEST_STATE';
+  type: 'UPDATE_QUOTE' | 'PING' | 'PONG' | 'REQUEST_STATE' | 'SYNC_CATALOG';
   senderId: string;
   timestamp: number;
   quote?: JobQuote;
+  catalog?: CatalogItem[];
 }

@@ -15,7 +15,7 @@ import { CatalogModal } from './components/CatalogModal';
 import { LoadQuotesModal } from './components/LoadQuotesModal';
 import { PdfPreviewModal } from './components/PdfPreviewModal';
 import { SettingsModal } from './components/SettingsModal';
-import { JobQuote, CompanySettings, MaterialSection } from './types';
+import { JobQuote, CompanySettings, MaterialSection, CatalogItem } from './types';
 import { BLANK_QUOTE, INITIAL_SAMPLE_QUOTE } from './constants';
 import { 
   calculateQuoteTotals, 
@@ -24,6 +24,7 @@ import {
   generateNextQuoteNo 
 } from './utils/calculations';
 import { SyncManager } from './utils/syncManager';
+import { fetchCatalogFromGoogleSheets } from './utils/googleSheetsSync';
 import { Check, Info, AlertTriangle } from 'lucide-react';
 
 export default function App() {
@@ -41,6 +42,11 @@ export default function App() {
   // Saved Quotes library
   const [savedQuotes, setSavedQuotes] = useState<JobQuote[]>(() =>
     SyncManager.loadSavedQuotes()
+  );
+
+  // Electrical Catalog state (supports CSV import and real-time sync)
+  const [catalog, setCatalog] = useState<CatalogItem[]>(() =>
+    SyncManager.loadCatalog()
   );
 
   // Sync state
@@ -100,6 +106,12 @@ export default function App() {
       showToast(`Real-time update received from another tab`, 'info');
     });
 
+    sm.onCatalogRemoteUpdate((remoteCatalog) => {
+      setCatalog(remoteCatalog);
+      SyncManager.saveCatalog(remoteCatalog);
+      showToast(`Catalog synchronized with updated items`, 'info');
+    });
+
     sm.onPeerCountChange((count) => {
       setPeerCount(count);
     });
@@ -122,6 +134,35 @@ export default function App() {
       sm.destroy();
     };
   }, []);
+
+  // Sync catalog from Google Sheets
+  const syncCatalogFromGoogleSheets = useCallback(async (silent = false) => {
+    try {
+      const result = await fetchCatalogFromGoogleSheets(companySettings.googleSheetsCsvUrl);
+      if (result.items && result.items.length > 0) {
+        setCatalog(result.items);
+        SyncManager.saveCatalog(result.items);
+        if (syncManagerRef.current) {
+          syncManagerRef.current.broadcastCatalogUpdate(result.items);
+        }
+        if (!silent) {
+          showToast(`Synced ${result.items.length} materials from Google Sheets`);
+        }
+      }
+    } catch (err: any) {
+      if (!silent) {
+        showToast(err.message || 'Failed to sync Google Sheets catalog', 'info');
+      }
+      throw err;
+    }
+  }, [companySettings.googleSheetsCsvUrl]);
+
+  // Automatically load & sync Google Sheets CSV catalog on page load
+  useEffect(() => {
+    syncCatalogFromGoogleSheets(true).catch((err) => {
+      console.warn('Initial Google Sheets catalog load failed:', err);
+    });
+  }, [syncCatalogFromGoogleSheets]);
 
   // Debounced auto-save & broadcast to other tabs on local edit
   useEffect(() => {
@@ -207,11 +248,11 @@ export default function App() {
     setSavedQuotes(freshSaved);
     setCompanySettings(freshSettings);
 
-    setTimeout(() => {
+    syncCatalogFromGoogleSheets(true).finally(() => {
       setSyncStatus('synced');
       setLastSyncedAt(new Date());
-      showToast('Estimate data refreshed from storage');
-    }, 300);
+      showToast('Estimate data & Google Sheets catalog refreshed');
+    });
   };
 
   const handleToggleCloudSync = () => {
@@ -273,6 +314,15 @@ export default function App() {
 
     handleUpdateSections(updatedSections);
     showToast(`Added ${itemData.description} to section`);
+  };
+
+  const handleUpdateCatalog = (newCatalog: CatalogItem[]) => {
+    setCatalog(newCatalog);
+    SyncManager.saveCatalog(newCatalog);
+    if (syncManagerRef.current) {
+      syncManagerRef.current.broadcastCatalogUpdate(newCatalog);
+    }
+    showToast(`Catalog synchronized (${newCatalog.length} items)`);
   };
 
   const handleSaveCompanySettings = (newSettings: CompanySettings) => {
@@ -405,6 +455,9 @@ export default function App() {
       <CatalogModal
         isOpen={isCatalogOpen}
         onClose={() => setIsCatalogOpen(false)}
+        catalog={catalog}
+        onUpdateCatalog={handleUpdateCatalog}
+        onSyncFromGoogleSheets={() => syncCatalogFromGoogleSheets(false)}
         sections={quote.sections}
         targetSectionId={catalogTargetSectionId}
         currencySymbol={quote.currencySymbol || '$'}

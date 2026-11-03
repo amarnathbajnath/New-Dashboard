@@ -1,16 +1,18 @@
-import { DEFAULT_COMPANY_SETTINGS, INITIAL_SAMPLE_QUOTE } from '../constants';
-import { CompanySettings, JobQuote, SyncMessage } from '../types';
+import { COMMON_ELECTRICAL_ITEMS, DEFAULT_COMPANY_SETTINGS, INITIAL_SAMPLE_QUOTE } from '../constants';
+import { CatalogItem, CompanySettings, JobQuote, SyncMessage } from '../types';
 
 const STORAGE_ACTIVE_QUOTE_KEY = 'risha_active_quote_v1';
 const STORAGE_SAVED_QUOTES_KEY = 'risha_saved_quotes_v1';
 const STORAGE_COMPANY_KEY = 'risha_company_settings_v1';
 const STORAGE_THEME_KEY = 'risha_theme_v1';
+const STORAGE_CUSTOM_CATALOG_KEY = 'risha_custom_catalog_v1';
 const CHANNEL_NAME = 'risha_job_costing_channel';
 
 export class SyncManager {
   private channel: BroadcastChannel | null = null;
   private senderId: string;
   private onRemoteUpdateCallback: ((quote: JobQuote) => void) | null = null;
+  private onCatalogUpdateCallback: ((items: CatalogItem[]) => void) | null = null;
   private onPeerCountChangeCallback: ((count: number) => void) | null = null;
   private activePeers: Set<string> = new Set();
   private pingInterval: number | null = null;
@@ -92,6 +94,10 @@ export class SyncManager {
       if (this.onRemoteUpdateCallback) {
         this.onRemoteUpdateCallback(msg.quote);
       }
+    } else if (msg.type === 'SYNC_CATALOG' && msg.catalog) {
+      if (this.onCatalogUpdateCallback) {
+        this.onCatalogUpdateCallback(msg.catalog);
+      }
     }
   }
 
@@ -106,8 +112,23 @@ export class SyncManager {
     }
   }
 
+  public broadcastCatalogUpdate(catalog: CatalogItem[]) {
+    if (this.channel) {
+      this.channel.postMessage({
+        type: 'SYNC_CATALOG',
+        senderId: this.senderId,
+        timestamp: Date.now(),
+        catalog,
+      });
+    }
+  }
+
   public onRemoteUpdate(callback: (quote: JobQuote) => void) {
     this.onRemoteUpdateCallback = callback;
+  }
+
+  public onCatalogRemoteUpdate(callback: (catalog: CatalogItem[]) => void) {
+    this.onCatalogUpdateCallback = callback;
   }
 
   public onPeerCountChange(callback: (count: number) => void) {
@@ -215,6 +236,29 @@ export class SyncManager {
       localStorage.setItem(STORAGE_COMPANY_KEY, JSON.stringify(settings));
     } catch (e) {
       console.error('Error saving company settings', e);
+    }
+  }
+
+  public static loadCatalog(): CatalogItem[] {
+    if (typeof window === 'undefined') return COMMON_ELECTRICAL_ITEMS;
+    try {
+      const data = localStorage.getItem(STORAGE_CUSTOM_CATALOG_KEY);
+      if (data) {
+        const parsed = JSON.parse(data);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {
+      console.error('Error loading custom catalog', e);
+    }
+    return COMMON_ELECTRICAL_ITEMS;
+  }
+
+  public static saveCatalog(items: CatalogItem[]) {
+    if (typeof window === 'undefined') return;
+    try {
+      localStorage.setItem(STORAGE_CUSTOM_CATALOG_KEY, JSON.stringify(items));
+    } catch (e) {
+      console.error('Error saving custom catalog', e);
     }
   }
 

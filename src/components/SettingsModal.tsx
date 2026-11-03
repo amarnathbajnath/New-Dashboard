@@ -187,6 +187,22 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             </div>
           </div>
 
+          <div className="pt-2 border-t border-[#1e2d4a]">
+            <label className="block text-[11px] font-bold uppercase text-slate-400 mb-1">
+              Google Sheets Catalog CSV URL (Auto-syncs on load)
+            </label>
+            <input
+              type="url"
+              value={form.googleSheetsCsvUrl || ''}
+              onChange={(e) => setForm({ ...form, googleSheetsCsvUrl: e.target.value })}
+              placeholder="https://docs.google.com/spreadsheets/d/e/.../pub?output=csv"
+              className="w-full px-3 py-2 rounded-lg bg-[#0a0f1d] border border-[#223354] text-slate-100 text-xs focus:outline-none focus:border-blue-500 font-mono"
+            />
+            <p className="mt-1 text-[10px] text-slate-400">
+              The app automatically fetches the latest materials and pricing directly from this Google Sheet when loaded.
+            </p>
+          </div>
+
           {/* GitHub Static Site & Offline Notice */}
           <div className="p-3 rounded-lg bg-blue-950/30 border border-blue-500/20 text-slate-300 text-[11px] space-y-1">
             <div className="flex items-center gap-1.5 text-blue-400 font-bold">
