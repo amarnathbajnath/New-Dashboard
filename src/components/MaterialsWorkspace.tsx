@@ -12,10 +12,12 @@ import {
   ChevronDown, 
   ChevronUp, 
   Copy,
-  X
+  X,
+  FileText
 } from 'lucide-react';
 import { MaterialItem, MaterialSection } from '../types';
 import { formatCurrency } from '../utils/calculations';
+import { RichTextEditor } from './RichTextEditor';
 
 interface MaterialsWorkspaceProps {
   sections: MaterialSection[];
@@ -84,6 +86,13 @@ export const MaterialsWorkspace: React.FC<MaterialsWorkspaceProps> = ({
   const handleUpdateSectionName = (sectionId: string, newName: string) => {
     const updated = sections.map((sec) =>
       sec.id === sectionId ? { ...sec, name: newName } : sec
+    );
+    onUpdateSections(updated);
+  };
+
+  const handleUpdateSectionScope = (sectionId: string, scopeOfWork: string) => {
+    const updated = sections.map((sec) =>
+      sec.id === sectionId ? { ...sec, scopeOfWork } : sec
     );
     onUpdateSections(updated);
   };
@@ -333,10 +342,24 @@ export const MaterialsWorkspace: React.FC<MaterialsWorkspaceProps> = ({
                   </div>
                 </div>
 
-                {/* Section Items Table */}
+                {/* Section Scope of Work + Items Table */}
                 {!isCollapsed && (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left text-xs border-collapse">
+                  <div>
+                    <div className="p-3.5 sm:p-4 bg-[#0b1323] border-b border-[#1c2a44] space-y-2">
+                      <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-300">
+                        <FileText className="w-3.5 h-3.5 text-blue-400" />
+                        <span>Scope of Work</span>
+                      </div>
+                      <RichTextEditor
+                        value={section.scopeOfWork || ''}
+                        onChange={(html) => handleUpdateSectionScope(section.id, html)}
+                        placeholder={`Write the scope of work for "${section.name || 'this section'}" (supports Bold, Italics, Bullet & Numbered lists)...`}
+                        minHeightClass="min-h-[76px]"
+                      />
+                    </div>
+
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-xs border-collapse">
                       <thead>
                         <tr className="border-b border-[#1c2a44] text-[11px] font-bold text-slate-400 uppercase tracking-wider bg-[#0a1020]/60">
                           <th className="py-2.5 px-3.5 min-w-[200px]">Description</th>
@@ -498,6 +521,7 @@ export const MaterialsWorkspace: React.FC<MaterialsWorkspaceProps> = ({
                         )}
                       </tbody>
                     </table>
+                    </div>
                   </div>
                 )}
               </div>

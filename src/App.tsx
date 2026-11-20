@@ -225,6 +225,7 @@ export default function App() {
         {
           id: 'sec-' + Date.now(),
           name: 'Main Distribution & Service Panel',
+          scopeOfWork: '',
           items: [],
         },
       ],
@@ -275,10 +276,11 @@ export default function App() {
     showToast(`Exported ${quote.quoteNo} as CSV`);
   };
 
-  const handleAddSection = (sectionName: string) => {
+  const handleAddSection = (sectionName: string, scopeOfWork = '') => {
     const newSection: MaterialSection = {
       id: 'sec-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6),
       name: sectionName,
+      scopeOfWork,
       items: [],
     };
     handleUpdateSections([...quote.sections, newSection]);

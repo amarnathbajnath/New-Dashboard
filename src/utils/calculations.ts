@@ -1,4 +1,5 @@
 import { JobQuote } from '../types';
+import { hasRichTextContent, richTextToPlainText } from './richText';
 
 export interface QuoteTotals {
   materialsSubtotal: number;
@@ -92,6 +93,18 @@ export function generateCsvContent(quote: JobQuote): string {
   rows.push(['Section', 'SKU', 'Description', 'Quantity', 'Unit', 'Unit Cost (TTD)', 'Line Total (TTD)']);
 
   quote.sections.forEach((sec) => {
+    if (hasRichTextContent(sec.scopeOfWork)) {
+      const scopePlain = richTextToPlainText(sec.scopeOfWork).replace(/"/g, '""');
+      rows.push([
+        `"${sec.name.replace(/"/g, '""')}"`,
+        'SCOPE OF WORK',
+        `"${scopePlain}"`,
+        '',
+        '',
+        '',
+        '',
+      ]);
+    }
     sec.items.forEach((item) => {
       const lineTotal = (item.quantity || 0) * (item.unitCost || 0);
       rows.push([

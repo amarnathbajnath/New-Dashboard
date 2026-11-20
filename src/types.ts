@@ -10,6 +10,7 @@ export interface MaterialItem {
 export interface MaterialSection {
   id: string;
   name: string;
+  scopeOfWork?: string;
   items: MaterialItem[];
 }
 

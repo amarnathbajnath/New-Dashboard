@@ -2,6 +2,7 @@ import React from 'react';
 import { Printer, X, Zap, FileCode } from 'lucide-react';
 import { CompanySettings, JobQuote } from '../types';
 import { calculateQuoteTotals, formatCurrency } from '../utils/calculations';
+import { hasRichTextContent, sanitizeRichTextHtml } from '../utils/richText';
 
 interface PdfPreviewModalProps {
   quote: JobQuote;
@@ -55,6 +56,10 @@ export const PdfPreviewModal: React.FC<PdfPreviewModalProps> = ({
     th { background: #0f172a; color: white; text-align: left; padding: 8px 12px; font-size: 11px; text-transform: uppercase; }
     td { padding: 8px 12px; border-bottom: 1px solid #e2e8f0; font-size: 12px; }
     .sec-header { background: #eff6ff; font-weight: bold; color: #1e3a8a; }
+    .sec-scope { background: #f8fafc; color: #334155; font-size: 11px; padding: 8px 14px; }
+    .sec-scope ul { list-style-type: disc; padding-left: 20px; margin: 4px 0; }
+    .sec-scope ol { list-style-type: decimal; padding-left: 20px; margin: 4px 0; }
+    .sec-scope li { margin: 2px 0; }
     .summary-wrap { display: flex; justify-content: flex-end; margin-bottom: 24px; page-break-inside: avoid; break-inside: avoid; }
     .summary-table { width: 320px; border: 1px solid #cbd5e1; border-radius: 8px; margin: 0; }
     .summary-table td { padding: 6px 12px; }
@@ -110,6 +115,9 @@ export const PdfPreviewModal: React.FC<PdfPreviewModalProps> = ({
     <tbody>
       ${quote.sections.map(sec => `
         <tr class="sec-header"><td colspan="6">${escapeHtml(sec.name)}</td></tr>
+        ${hasRichTextContent(sec.scopeOfWork) ? `
+          <tr><td colspan="6" class="sec-scope"><div style="font-size: 10px; font-weight: bold; text-transform: uppercase; color: #64748b; margin-bottom: 3px;">Scope of Work:</div>${sanitizeRichTextHtml(sec.scopeOfWork)}</td></tr>
+        ` : ''}
         ${sec.items.map(item => `
           <tr>
             <td>${escapeHtml(item.description)}</td>
@@ -137,7 +145,7 @@ export const PdfPreviewModal: React.FC<PdfPreviewModalProps> = ({
 
   ${quote.notes ? `
     <div class="avoid-break" style="margin-top: 16px; padding: 12px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 12px;">
-      <strong>Scope of Work / Job Notes:</strong>
+      <strong>Job Notes:</strong>
       <p style="margin: 4px 0 0 0; white-space: pre-line;">${escapeHtml(quote.notes)}</p>
     </div>
   ` : ''}
@@ -296,6 +304,21 @@ export const PdfPreviewModal: React.FC<PdfPreviewModalProps> = ({
                           {section.name}
                         </td>
                       </tr>
+                      {hasRichTextContent(section.scopeOfWork) && (
+                        <tr className="bg-slate-50/70">
+                          <td colSpan={6} className="px-4 py-2 text-[11px] text-slate-700 border-b border-slate-200">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block mb-0.5">
+                              Scope of Work:
+                            </span>
+                            <div
+                              className="rich-scope-content leading-relaxed"
+                              dangerouslySetInnerHTML={{
+                                __html: sanitizeRichTextHtml(section.scopeOfWork),
+                              }}
+                            />
+                          </td>
+                        </tr>
+                      )}
                       {section.items.map((item) => {
                         const lineTotal = (Number(item.quantity) || 0) * (Number(item.unitCost) || 0);
                         return (
@@ -366,7 +389,7 @@ export const PdfPreviewModal: React.FC<PdfPreviewModalProps> = ({
             {quote.notes && (
               <div className="bg-slate-50 border border-slate-200 rounded p-3 text-[11px] mb-6 print-avoid-break">
                 <span className="font-bold text-slate-700 uppercase tracking-wider block mb-1">
-                  Scope of Work / Job Notes:
+                  Job Notes:
                 </span>
                 <p className="text-slate-600 whitespace-pre-line">{quote.notes}</p>
               </div>
