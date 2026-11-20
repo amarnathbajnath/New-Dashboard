@@ -1,5 +1,5 @@
 import React from 'react';
-import { Printer, Download, X, Zap, Check, FileCode } from 'lucide-react';
+import { Printer, X, Zap, FileCode } from 'lucide-react';
 import { CompanySettings, JobQuote } from '../types';
 import { calculateQuoteTotals, formatCurrency } from '../utils/calculations';
 
@@ -8,6 +8,15 @@ interface PdfPreviewModalProps {
   company: CompanySettings;
   isOpen: boolean;
   onClose: () => void;
+}
+
+function escapeHtml(text: string): string {
+  return String(text || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 export const PdfPreviewModal: React.FC<PdfPreviewModalProps> = ({
@@ -19,6 +28,7 @@ export const PdfPreviewModal: React.FC<PdfPreviewModalProps> = ({
   if (!isOpen) return null;
 
   const totals = calculateQuoteTotals(quote);
+  const symbol = quote.currencySymbol || '$';
 
   const handlePrint = () => {
     window.print();
@@ -29,51 +39,60 @@ export const PdfPreviewModal: React.FC<PdfPreviewModalProps> = ({
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Quote ${quote.quoteNo} - ${company.companyName}</title>
+  <title>Quote ${escapeHtml(quote.quoteNo)} - ${escapeHtml(company.companyName)}</title>
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 40px; color: #1e293b; line-height: 1.5; }
-    .header { display: flex; justify-content: space-between; border-bottom: 2px solid #2563eb; padding-bottom: 16px; margin-bottom: 24px; }
-    .company-title { font-size: 24px; font-weight: 800; color: #1e3a8a; }
-    .quote-title { font-size: 20px; font-weight: 700; color: #2563eb; text-align: right; }
-    .grid { display: flex; justify-content: space-between; margin-bottom: 24px; }
-    .box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px; width: 48%; }
-    table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
-    th { background: #0f172a; color: white; text-align: left; padding: 8px 12px; font-size: 12px; text-transform: uppercase; }
-    td { padding: 8px 12px; border-bottom: 1px solid #e2e8f0; font-size: 13px; }
-    .sec-header { background: #e0f2fe; font-weight: bold; color: #0369a1; }
-    .summary-table { width: 340px; margin-left: auto; border: 1px solid #cbd5e1; border-radius: 8px; }
+    @page { size: auto; margin: 12mm 14mm; }
+    * { box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 32px; color: #1e293b; line-height: 1.5; background: #fff; }
+    .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #2563eb; padding-bottom: 16px; margin-bottom: 24px; }
+    .company-title { font-size: 22px; font-weight: 800; color: #0f172a; }
+    .quote-title { font-size: 16px; font-weight: 700; color: #1e40af; background: #dbeafe; padding: 4px 12px; border-radius: 6px; display: inline-block; text-transform: uppercase; }
+    .grid { display: flex; justify-content: space-between; gap: 16px; margin-bottom: 24px; }
+    .box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px; width: 49%; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 24px; page-break-inside: auto; }
+    thead { display: table-header-group; }
+    tr { page-break-inside: avoid; break-inside: avoid; }
+    th { background: #0f172a; color: white; text-align: left; padding: 8px 12px; font-size: 11px; text-transform: uppercase; }
+    td { padding: 8px 12px; border-bottom: 1px solid #e2e8f0; font-size: 12px; }
+    .sec-header { background: #eff6ff; font-weight: bold; color: #1e3a8a; }
+    .summary-wrap { display: flex; justify-content: flex-end; margin-bottom: 24px; page-break-inside: avoid; break-inside: avoid; }
+    .summary-table { width: 320px; border: 1px solid #cbd5e1; border-radius: 8px; margin: 0; }
     .summary-table td { padding: 6px 12px; }
-    .total-row { font-size: 18px; font-weight: bold; background: #ecfdf5; color: #047857; }
-    .footer { margin-top: 40px; padding-top: 16px; border-top: 1px solid #e2e8f0; font-size: 11px; color: #64748b; }
-    @media print { body { margin: 10mm; } }
+    .total-row { font-size: 16px; font-weight: bold; background: #ecfdf5; color: #047857; }
+    .avoid-break { page-break-inside: avoid; break-inside: avoid; }
+    .footer { margin-top: 32px; padding-top: 16px; border-top: 1px solid #e2e8f0; font-size: 11px; color: #64748b; }
+    @media print {
+      body { margin: 0; padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
   </style>
 </head>
 <body>
   <div class="header">
     <div>
-      <div class="company-title">⚡ ${company.companyName}</div>
-      <div style="font-size: 12px; color: #64748b;">${company.subtitle}</div>
-      <div style="font-size: 12px; margin-top: 4px;">${company.address}</div>
-      <div style="font-size: 12px;">Tel: ${company.phone} | ${company.email}</div>
-      <div style="font-size: 11px; color: #475569;">Tax/VAT Reg: ${company.taxRegistrationNo}</div>
+      <div class="company-title">⚡ ${escapeHtml(company.companyName)}</div>
+      <div style="font-size: 12px; color: #1d4ed8; font-weight: 600;">${escapeHtml(company.subtitle)}</div>
+      <div style="font-size: 12px; margin-top: 6px; color: #475569;">${escapeHtml(company.address)}</div>
+      <div style="font-size: 12px; color: #475569;">Tel: ${escapeHtml(company.phone)} | ${escapeHtml(company.email)}</div>
+      <div style="font-size: 11px; color: #334155; font-weight: 600;">Tax/VAT Reg: ${escapeHtml(company.taxRegistrationNo)}</div>
     </div>
-    <div>
-      <div class="quote-title">OFFICIAL ESTIMATE</div>
-      <div style="font-size: 14px; font-weight: bold; margin-top: 4px;">No: ${quote.quoteNo}</div>
-      <div style="font-size: 13px; color: #64748b;">Date: ${quote.date}</div>
+    <div style="text-align: right;">
+      <div class="quote-title">Estimate / Quotation</div>
+      <div style="font-size: 14px; font-weight: bold; margin-top: 8px;">No: ${escapeHtml(quote.quoteNo)}</div>
+      <div style="font-size: 13px; color: #64748b;">Date: ${escapeHtml(quote.date)}</div>
     </div>
   </div>
 
   <div class="grid">
     <div class="box">
-      <div style="font-size: 11px; font-weight: bold; color: #64748b; text-transform: uppercase;">Customer Information</div>
-      <div style="font-size: 15px; font-weight: bold; margin-top: 4px;">${quote.customerName || 'N/A'}</div>
-      <div style="font-size: 13px; color: #475569;">${quote.address || 'N/A'}</div>
+      <div style="font-size: 10px; font-weight: bold; color: #64748b; text-transform: uppercase;">Prepared For</div>
+      <div style="font-size: 15px; font-weight: bold; margin-top: 4px;">${escapeHtml(quote.customerName || 'Valued Customer')}</div>
+      <div style="font-size: 12px; color: #475569;">${escapeHtml(quote.address || 'Site Location')}</div>
     </div>
     <div class="box">
-      <div style="font-size: 11px; font-weight: bold; color: #64748b; text-transform: uppercase;">Job Summary</div>
-      <div style="font-size: 12px; margin-top: 4px;">Markup: ${quote.markupPercent}% | VAT: ${quote.vatPercent}%</div>
-      <div style="font-size: 12px;">Status: Approved Contractor Quotation</div>
+      <div style="font-size: 10px; font-weight: bold; color: #64748b; text-transform: uppercase;">Pricing Terms</div>
+      <div style="font-size: 12px; margin-top: 4px;">Markup Rate: <strong>${quote.markupPercent}%</strong></div>
+      <div style="font-size: 12px;">VAT Applicable: <strong>${quote.vatPercent}%</strong></div>
+      <div style="font-size: 12px;">Currency: <strong>${escapeHtml(quote.currencyCode || 'TTD')} (${escapeHtml(symbol)})</strong></div>
     </div>
   </div>
 
@@ -85,44 +104,46 @@ export const PdfPreviewModal: React.FC<PdfPreviewModalProps> = ({
         <th style="text-align: center;">Qty</th>
         <th>Unit</th>
         <th style="text-align: right;">Unit Cost</th>
-        <th style="text-align: right;">Total</th>
+        <th style="text-align: right;">Amount</th>
       </tr>
     </thead>
     <tbody>
       ${quote.sections.map(sec => `
-        <tr class="sec-header"><td colspan="6">${sec.name}</td></tr>
+        <tr class="sec-header"><td colspan="6">${escapeHtml(sec.name)}</td></tr>
         ${sec.items.map(item => `
           <tr>
-            <td>${item.description}</td>
-            <td style="font-family: monospace; font-size: 11px;">${item.sku || '-'}</td>
-            <td style="text-align: center;">${item.quantity}</td>
-            <td>${item.unit}</td>
-            <td style="text-align: right;">$${Number(item.unitCost).toFixed(2)}</td>
-            <td style="text-align: right; font-weight: bold;">$${(Number(item.quantity) * Number(item.unitCost)).toFixed(2)}</td>
+            <td>${escapeHtml(item.description)}</td>
+            <td style="font-family: monospace; font-size: 11px; color: #64748b;">${escapeHtml(item.sku || '-')}</td>
+            <td style="text-align: center; font-family: monospace;">${item.quantity}</td>
+            <td>${escapeHtml(item.unit)}</td>
+            <td style="text-align: right; font-family: monospace;">${escapeHtml(formatCurrency(item.unitCost, symbol))}</td>
+            <td style="text-align: right; font-weight: bold; font-family: monospace;">${escapeHtml(formatCurrency((Number(item.quantity) || 0) * (Number(item.unitCost) || 0), symbol))}</td>
           </tr>
         `).join('')}
       `).join('')}
     </tbody>
   </table>
 
-  <table class="summary-table">
-    <tr><td>Materials Subtotal:</td><td style="text-align: right;">$${totals.materialsSubtotal.toFixed(2)}</td></tr>
-    <tr><td>Markup (${quote.markupPercent}%):</td><td style="text-align: right;">$${totals.markupAmount.toFixed(2)}</td></tr>
-    <tr><td>VAT (${quote.vatPercent}%):</td><td style="text-align: right;">$${totals.vatAmount.toFixed(2)}</td></tr>
-    <tr><td>Labour:</td><td style="text-align: right;">$${totals.labourCost.toFixed(2)}</td></tr>
-    <tr><td>Inspection:</td><td style="text-align: right;">$${totals.inspectionCost.toFixed(2)}</td></tr>
-    <tr class="total-row"><td>TOTAL:</td><td style="text-align: right;">$${totals.total.toFixed(2)}</td></tr>
-  </table>
+  <div class="summary-wrap">
+    <table class="summary-table">
+      <tr><td>Materials Subtotal:</td><td style="text-align: right; font-family: monospace;">${escapeHtml(formatCurrency(totals.materialsSubtotal, symbol))}</td></tr>
+      <tr><td>Markup (${quote.markupPercent}%):</td><td style="text-align: right; font-family: monospace;">${escapeHtml(formatCurrency(totals.markupAmount, symbol))}</td></tr>
+      <tr><td>VAT (${quote.vatPercent}%):</td><td style="text-align: right; font-family: monospace;">${escapeHtml(formatCurrency(totals.vatAmount, symbol))}</td></tr>
+      <tr><td>Labour:</td><td style="text-align: right; font-family: monospace;">${escapeHtml(formatCurrency(totals.labourCost, symbol))}</td></tr>
+      <tr><td>Inspection:</td><td style="text-align: right; font-family: monospace;">${escapeHtml(formatCurrency(totals.inspectionCost, symbol))}</td></tr>
+      <tr class="total-row"><td>TOTAL (${escapeHtml(quote.currencyCode || 'TTD')}):</td><td style="text-align: right; font-family: monospace;">${escapeHtml(formatCurrency(totals.total, symbol))}</td></tr>
+    </table>
+  </div>
 
   ${quote.notes ? `
-    <div style="margin-top: 24px; padding: 12px; background: #f1f5f9; border-radius: 6px; font-size: 12px;">
-      <strong>Notes / Scope of Works:</strong>
-      <p style="margin: 4px 0 0 0;">${quote.notes}</p>
+    <div class="avoid-break" style="margin-top: 16px; padding: 12px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 12px;">
+      <strong>Scope of Work / Job Notes:</strong>
+      <p style="margin: 4px 0 0 0; white-space: pre-line;">${escapeHtml(quote.notes)}</p>
     </div>
   ` : ''}
 
-  <div class="footer">
-    <p>This quotation is generated by ${company.companyName}. Valid for 30 days from date of issue. To accept this proposal, please sign and return.</p>
+  <div class="footer avoid-break">
+    <p>This quotation is generated by ${escapeHtml(company.companyName)}. Valid for 30 days from date of issue. To accept this proposal, please sign and return.</p>
   </div>
 </body>
 </html>`;
@@ -137,10 +158,10 @@ export const PdfPreviewModal: React.FC<PdfPreviewModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm overflow-y-auto">
-      <div className="relative w-full max-w-4xl bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl flex flex-col max-h-[92vh] overflow-hidden my-auto text-slate-100">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm overflow-y-auto print:static print:inset-auto print:block print:p-0 print:m-0 print:bg-white print:overflow-visible print:backdrop-blur-none">
+      <div className="relative w-full max-w-4xl bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl flex flex-col max-h-[92vh] overflow-hidden my-auto text-slate-100 print:static print:block print:w-full print:max-w-none print:max-h-none print:h-auto print:overflow-visible print:bg-white print:text-slate-900 print:border-0 print:rounded-none print:shadow-none print:m-0">
         {/* Modal Toolbar */}
-        <div className="px-6 py-4 bg-slate-950 border-b border-slate-800 flex items-center justify-between gap-4">
+        <div className="px-6 py-4 bg-slate-950 border-b border-slate-800 flex items-center justify-between gap-4 print:hidden">
           <div className="flex items-center gap-2">
             <Zap className="w-5 h-5 text-blue-400" />
             <span className="font-bold text-sm tracking-wide">
@@ -171,7 +192,8 @@ export const PdfPreviewModal: React.FC<PdfPreviewModalProps> = ({
 
             <button
               onClick={onClose}
-              className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition"
+              className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition cursor-pointer"
+              aria-label="Close preview"
             >
               <X className="w-5 h-5" />
             </button>
@@ -179,10 +201,13 @@ export const PdfPreviewModal: React.FC<PdfPreviewModalProps> = ({
         </div>
 
         {/* Printable Document Container (Styled like clean white document) */}
-        <div className="p-6 overflow-y-auto bg-slate-800/50">
-          <div id="printable-quote" className="bg-white text-slate-900 rounded-xl p-8 sm:p-10 shadow-lg max-w-3xl mx-auto text-xs leading-normal">
+        <div className="p-6 overflow-y-auto bg-slate-800/50 print:p-0 print:m-0 print:overflow-visible print:bg-white">
+          <div
+            id="printable-quote"
+            className="bg-white text-slate-900 rounded-xl p-8 sm:p-10 shadow-lg max-w-3xl mx-auto text-xs leading-normal print:rounded-none print:shadow-none print:max-w-none print:w-full print:p-0 print:m-0"
+          >
             {/* Document Header */}
-            <div className="flex justify-between items-start border-b-2 border-blue-600 pb-5 mb-6">
+            <div className="flex justify-between items-start border-b-2 border-blue-600 pb-5 mb-6 print-avoid-break">
               <div>
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 rounded bg-blue-600 text-white flex items-center justify-center font-bold">
@@ -222,7 +247,7 @@ export const PdfPreviewModal: React.FC<PdfPreviewModalProps> = ({
             </div>
 
             {/* Client & Project Info */}
-            <div className="grid grid-cols-2 gap-4 mb-6">
+            <div className="grid grid-cols-2 gap-4 mb-6 print-avoid-break">
               <div className="bg-slate-50 border border-slate-200 rounded-lg p-3">
                 <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
                   Prepared For:
@@ -242,7 +267,7 @@ export const PdfPreviewModal: React.FC<PdfPreviewModalProps> = ({
                   VAT Applicable: <strong className="text-slate-900">{quote.vatPercent}%</strong>
                 </p>
                 <p className="text-xs text-slate-700">
-                  Currency: <strong className="text-slate-900">{quote.currencyCode || 'TTD'} ({quote.currencySymbol || '$'})</strong>
+                  Currency: <strong className="text-slate-900">{quote.currencyCode || 'TTD'} ({symbol})</strong>
                 </p>
               </div>
             </div>
@@ -280,10 +305,10 @@ export const PdfPreviewModal: React.FC<PdfPreviewModalProps> = ({
                             <td className="p-2 text-center font-mono">{item.quantity}</td>
                             <td className="p-2 text-slate-600">{item.unit}</td>
                             <td className="p-2 text-right font-mono text-slate-700">
-                              {formatCurrency(item.unitCost, quote.currencySymbol)}
+                              {formatCurrency(item.unitCost, symbol)}
                             </td>
                             <td className="p-2 text-right font-mono font-bold text-slate-900">
-                              {formatCurrency(lineTotal, quote.currencySymbol)}
+                              {formatCurrency(lineTotal, symbol)}
                             </td>
                           </tr>
                         );
@@ -295,43 +320,43 @@ export const PdfPreviewModal: React.FC<PdfPreviewModalProps> = ({
             </div>
 
             {/* Summary Totals Box */}
-            <div className="flex justify-end mb-6">
+            <div className="flex justify-end mb-6 print-avoid-break">
               <div className="w-72 bg-slate-50 border border-slate-300 rounded-lg p-3 space-y-1.5 text-xs">
                 <div className="flex justify-between text-slate-600">
                   <span>Materials Subtotal:</span>
                   <span className="font-mono font-semibold text-slate-900">
-                    {formatCurrency(totals.materialsSubtotal, quote.currencySymbol)}
+                    {formatCurrency(totals.materialsSubtotal, symbol)}
                   </span>
                 </div>
                 <div className="flex justify-between text-slate-600">
                   <span>Markup ({quote.markupPercent}%):</span>
                   <span className="font-mono font-semibold text-slate-900">
-                    {formatCurrency(totals.markupAmount, quote.currencySymbol)}
+                    {formatCurrency(totals.markupAmount, symbol)}
                   </span>
                 </div>
                 <div className="flex justify-between text-slate-600">
                   <span>VAT ({quote.vatPercent}%):</span>
                   <span className="font-mono font-semibold text-slate-900">
-                    {formatCurrency(totals.vatAmount, quote.currencySymbol)}
+                    {formatCurrency(totals.vatAmount, symbol)}
                   </span>
                 </div>
                 <div className="border-t border-slate-200 my-1" />
                 <div className="flex justify-between text-slate-600">
                   <span>Labour:</span>
                   <span className="font-mono font-semibold text-slate-900">
-                    {formatCurrency(totals.labourCost, quote.currencySymbol)}
+                    {formatCurrency(totals.labourCost, symbol)}
                   </span>
                 </div>
                 <div className="flex justify-between text-slate-600">
                   <span>Inspection:</span>
                   <span className="font-mono font-semibold text-slate-900">
-                    {formatCurrency(totals.inspectionCost, quote.currencySymbol)}
+                    {formatCurrency(totals.inspectionCost, symbol)}
                   </span>
                 </div>
                 <div className="border-t-2 border-slate-300 pt-1.5 flex justify-between items-center text-sm font-bold text-slate-900">
                   <span>TOTAL ({quote.currencyCode || 'TTD'}):</span>
                   <span className="font-mono text-base font-extrabold text-blue-700">
-                    {formatCurrency(totals.total, quote.currencySymbol)}
+                    {formatCurrency(totals.total, symbol)}
                   </span>
                 </div>
               </div>
@@ -339,7 +364,7 @@ export const PdfPreviewModal: React.FC<PdfPreviewModalProps> = ({
 
             {/* Notes */}
             {quote.notes && (
-              <div className="bg-slate-50 border border-slate-200 rounded p-3 text-[11px] mb-6">
+              <div className="bg-slate-50 border border-slate-200 rounded p-3 text-[11px] mb-6 print-avoid-break">
                 <span className="font-bold text-slate-700 uppercase tracking-wider block mb-1">
                   Scope of Work / Job Notes:
                 </span>
@@ -348,7 +373,7 @@ export const PdfPreviewModal: React.FC<PdfPreviewModalProps> = ({
             )}
 
             {/* Authorization Signatures */}
-            <div className="pt-8 border-t border-slate-300 grid grid-cols-2 gap-8 text-[11px] text-slate-600">
+            <div className="pt-8 border-t border-slate-300 grid grid-cols-2 gap-8 text-[11px] text-slate-600 print-avoid-break">
               <div>
                 <div className="border-b border-slate-400 pb-1 mb-1 font-semibold text-slate-800">
                   Prepared By: {company.companyName}

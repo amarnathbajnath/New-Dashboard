@@ -1,8 +1,9 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   BookOpen, 
   Search, 
   Plus, 
+  Minus,
   Check, 
   X, 
   Upload, 
@@ -35,6 +36,8 @@ interface CatalogModalProps {
   }) => void;
 }
 
+const QUICK_QUANTITIES = [1, 2, 5, 10, 20, 50, 100];
+
 export const CatalogModal: React.FC<CatalogModalProps> = ({
   isOpen,
   onClose,
@@ -54,6 +57,11 @@ export const CatalogModal: React.FC<CatalogModalProps> = ({
   const [addedItemName, setAddedItemName] = useState<string | null>(null);
   const [isSyncingGoogle, setIsSyncingGoogle] = useState(false);
 
+  // Quantity prompt state when adding an item
+  const [pendingItem, setPendingItem] = useState<CatalogItem | null>(null);
+  const [pendingQty, setPendingQty] = useState<string>('1');
+  const qtyInputRef = useRef<HTMLInputElement | null>(null);
+
   // CSV Import states
   const [isPasteModalOpen, setIsPasteModalOpen] = useState(false);
   const [pasteCsvText, setPasteCsvText] = useState('');
@@ -62,6 +70,30 @@ export const CatalogModal: React.FC<CatalogModalProps> = ({
   const [importSuccessMessage, setImportSuccessMessage] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Keep target section in sync when modal opens or sections change
+  useEffect(() => {
+    if (isOpen) {
+      if (targetSectionId && sections.some((s) => s.id === targetSectionId)) {
+        setSelectedSectionId(targetSectionId);
+      } else if (!selectedSectionId || !sections.some((s) => s.id === selectedSectionId)) {
+        setSelectedSectionId(sections[0]?.id ?? '');
+      }
+      setPendingItem(null);
+      setPendingQty('1');
+    }
+  }, [isOpen, targetSectionId, sections]);
+
+  // Auto-focus and select quantity input when quantity prompt opens
+  useEffect(() => {
+    if (pendingItem) {
+      const timer = setTimeout(() => {
+        qtyInputRef.current?.focus();
+        qtyInputRef.current?.select();
+      }, 30);
+      return () => clearTimeout(timer);
+    }
+  }, [pendingItem]);
 
   if (!isOpen) return null;
 
@@ -76,28 +108,59 @@ export const CatalogModal: React.FC<CatalogModalProps> = ({
     return matchesCategory && matchesSearch;
   });
 
-  const handleAdd = (item: CatalogItem) => {
+  const handleOpenQuantityPrompt = (item: CatalogItem) => {
+    if (sections.length === 0) {
+      setImportError('Please create a material section first before adding items.');
+      return;
+    }
+    setImportError(null);
+    setPendingItem(item);
+    setPendingQty('1');
+  };
+
+  const handleConfirmAdd = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!pendingItem) return;
+
+    const parsedQty = parseFloat(pendingQty);
+    const finalQty = !isNaN(parsedQty) && parsedQty > 0 ? parsedQty : 1;
+
     let destId = selectedSectionId;
     if (!destId && sections.length > 0) {
       destId = sections[0].id;
     }
     if (!destId) {
-      alert('Please create a section first before adding materials.');
+      setImportError('Please create a material section first before adding items.');
+      setPendingItem(null);
       return;
     }
 
     onAddItemToSection(destId, {
-      description: item.description,
-      quantity: 1,
-      unit: item.unit,
-      unitCost: item.unitCost,
-      sku: item.sku || ('SKU-' + item.category.substring(0, 3).toUpperCase() + '-' + Math.floor(Math.random() * 900 + 100)),
+      description: pendingItem.description,
+      quantity: finalQty,
+      unit: pendingItem.unit,
+      unitCost: pendingItem.unitCost,
+      sku:
+        pendingItem.sku ||
+        'SKU-' +
+          pendingItem.category.substring(0, 3).toUpperCase() +
+          '-' +
+          Math.floor(Math.random() * 900 + 100),
     });
 
-    setAddedItemName(item.description);
+    const addedName = pendingItem.description;
+    setPendingItem(null);
+    setPendingQty('1');
+    setAddedItemName(addedName);
     setTimeout(() => {
       setAddedItemName(null);
     }, 1500);
+  };
+
+  const adjustPendingQty = (delta: number) => {
+    const current = parseFloat(pendingQty) || 0;
+    const next = Math.max(0.5, Math.round((current + delta) * 100) / 100);
+    setPendingQty(String(next));
   };
 
   const processCsvContent = (csvString: string) => {
@@ -168,11 +231,13 @@ SRV-010,200A 1-Phase Stainless Steel Meter Base,each,$895.00,1. Service Entrance
     }
   };
 
+  const numericPendingQty = Math.max(0, parseFloat(pendingQty) || 0);
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xs">
-      <div className="w-full max-w-3xl bg-[#0f172a] border border-[#233554] rounded-2xl shadow-2xl flex flex-col max-h-[88vh] text-slate-100 overflow-hidden">
+      <div className="relative w-full max-w-3xl bg-[#0f172a] border border-[#233554] rounded-2xl shadow-2xl flex flex-col max-h-[88vh] text-slate-100 overflow-hidden">
         {/* Header */}
-        <div className="px-6 py-4 bg-[#0a1020] border-b border-[#1e2d4a] flex items-center justify-between">
+        <div className="px-6 py-4 bg-[#0a1020] border-b border-[#1e2d4a] flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <BookOpen className="w-5 h-5 text-blue-400" />
             <div>
@@ -214,7 +279,8 @@ SRV-010,200A 1-Phase Stainless Steel Meter Base,each,$895.00,1. Service Entrance
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white transition cursor-pointer active:scale-95 shadow-sm disabled:opacity-50"
               >
                 <RotateCcw className={`w-3.5 h-3.5 ${isSyncingGoogle ? 'animate-spin' : ''}`} />
-                <span>{isSyncingGoogle ? 'Syncing...' : 'Sync Google Sheet'}</span>
+                <span className="hidden sm:inline">{isSyncingGoogle ? 'Syncing...' : 'Sync Google Sheet'}</span>
+                <span className="sm:hidden">{isSyncingGoogle ? '...' : 'Sync'}</span>
               </button>
             )}
 
@@ -224,7 +290,7 @@ SRV-010,200A 1-Phase Stainless Steel Meter Base,each,$895.00,1. Service Entrance
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white transition cursor-pointer active:scale-95 shadow-sm"
             >
               <Upload className="w-3.5 h-3.5" />
-              <span>Import CSV</span>
+              <span className="hidden sm:inline">Import CSV</span>
             </button>
 
             <button
@@ -246,7 +312,7 @@ SRV-010,200A 1-Phase Stainless Steel Meter Base,each,$895.00,1. Service Entrance
 
             <button
               onClick={onClose}
-              className="p-1 text-slate-400 hover:text-white rounded-lg transition"
+              className="p-1 text-slate-400 hover:text-white rounded-lg transition cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
@@ -370,8 +436,8 @@ SRV-010,200A 1-Phase Stainless Steel Meter Base,each,$895.00,1. Service Entrance
                 </div>
 
                 <button
-                  onClick={() => handleAdd(item)}
-                  className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs flex items-center gap-1.5 transition active:scale-95 shadow-sm"
+                  onClick={() => handleOpenQuantityPrompt(item)}
+                  className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs flex items-center gap-1.5 transition active:scale-95 shadow-sm cursor-pointer shrink-0"
                 >
                   {addedItemName === item.description ? (
                     <>
@@ -395,7 +461,7 @@ SRV-010,200A 1-Phase Stainless Steel Meter Base,each,$895.00,1. Service Entrance
           <div className="flex items-center gap-3">
             <button
               onClick={handleDownloadSample}
-              className="text-blue-400 hover:text-blue-300 underline flex items-center gap-1"
+              className="text-blue-400 hover:text-blue-300 underline flex items-center gap-1 cursor-pointer"
             >
               <FileSpreadsheet className="w-3.5 h-3.5" />
               <span>Download CSV Template</span>
@@ -403,7 +469,7 @@ SRV-010,200A 1-Phase Stainless Steel Meter Base,each,$895.00,1. Service Entrance
 
             <button
               onClick={handleResetToDefaults}
-              className="text-slate-500 hover:text-slate-300 flex items-center gap-1 transition"
+              className="text-slate-500 hover:text-slate-300 flex items-center gap-1 transition cursor-pointer"
             >
               <RotateCcw className="w-3 h-3" />
               <span>Reset Defaults</span>
@@ -412,11 +478,146 @@ SRV-010,200A 1-Phase Stainless Steel Meter Base,each,$895.00,1. Service Entrance
 
           <button
             onClick={onClose}
-            className="px-4 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 transition"
+            className="px-4 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 transition cursor-pointer"
           >
             Done
           </button>
         </div>
+
+        {/* Quantity Prompt Overlay when adding an item */}
+        {pendingItem && (
+          <div
+            className="absolute inset-0 z-50 bg-black/75 backdrop-blur-xs flex items-center justify-center p-4"
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') {
+                setPendingItem(null);
+              }
+            }}
+          >
+            <form
+              onSubmit={handleConfirmAdd}
+              className="w-full max-w-md bg-[#0f172a] border border-blue-500/40 rounded-2xl p-5 shadow-2xl space-y-4 text-slate-100"
+            >
+              <div className="flex items-start justify-between gap-3 pb-3 border-b border-[#1e2d4a]">
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-blue-400 tracking-wider block">
+                    Enter Quantity to Add
+                  </span>
+                  <h4 className="font-bold text-sm text-white mt-0.5">
+                    {pendingItem.description}
+                  </h4>
+                  <p className="text-[11px] text-slate-400 font-mono mt-0.5">
+                    {pendingItem.sku ? `${pendingItem.sku} • ` : ''}
+                    {formatCurrency(pendingItem.unitCost, currencySymbol)} / {pendingItem.unit}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setPendingItem(null)}
+                  className="p-1 text-slate-400 hover:text-white rounded-lg transition cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {sections.length > 0 && (
+                <div>
+                  <label className="block text-[11px] font-bold uppercase text-slate-400 mb-1">
+                    Target Section
+                  </label>
+                  <select
+                    value={selectedSectionId || sections[0]?.id}
+                    onChange={(e) => setSelectedSectionId(e.target.value)}
+                    className="w-full bg-[#0a0f1d] border border-[#223354] rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-blue-500"
+                  >
+                    {sections.map((sec) => (
+                      <option key={sec.id} value={sec.id}>
+                        {sec.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-200 mb-2">
+                  What quantity ({pendingItem.unit}) would you like to add?
+                </label>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => adjustPendingQty(-1)}
+                    className="p-2.5 rounded-lg bg-[#142038] hover:bg-[#1e2e4f] border border-[#223558] text-slate-200 transition cursor-pointer"
+                    aria-label="Decrease quantity"
+                  >
+                    <Minus className="w-4 h-4" />
+                  </button>
+                  <input
+                    ref={qtyInputRef}
+                    type="number"
+                    step="any"
+                    min="0.01"
+                    required
+                    value={pendingQty}
+                    onChange={(e) => setPendingQty(e.target.value)}
+                    className="flex-1 text-center py-2 px-3 rounded-lg bg-[#0a0f1d] border border-blue-500/60 text-white font-mono text-base font-bold focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => adjustPendingQty(1)}
+                    className="p-2.5 rounded-lg bg-[#142038] hover:bg-[#1e2e4f] border border-[#223558] text-slate-200 transition cursor-pointer"
+                    aria-label="Increase quantity"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </button>
+                </div>
+
+                {/* Quick Quantity Presets */}
+                <div className="flex flex-wrap gap-1.5 mt-2.5">
+                  {QUICK_QUANTITIES.map((q) => (
+                    <button
+                      key={q}
+                      type="button"
+                      onClick={() => setPendingQty(String(q))}
+                      className={`px-2.5 py-1 rounded-md text-xs font-mono font-semibold transition cursor-pointer ${
+                        numericPendingQty === q
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-[#142038] hover:bg-[#1d2d4d] text-slate-300 border border-[#223558]'
+                      }`}
+                    >
+                      {q}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="p-3 rounded-lg bg-[#0a1020] border border-[#1e2d4a] flex items-center justify-between text-xs">
+                <span className="text-slate-400">Line Subtotal Preview:</span>
+                <span className="font-mono font-bold text-sm text-emerald-400">
+                  {formatCurrency(numericPendingQty * pendingItem.unitCost, currencySymbol)}
+                </span>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2 border-t border-[#1e2d4a]">
+                <button
+                  type="button"
+                  onClick={() => setPendingItem(null)}
+                  className="px-4 py-2 rounded-lg text-xs font-medium text-slate-300 hover:bg-[#1a2846] transition cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={numericPendingQty <= 0}
+                  className="px-4 py-2 rounded-lg text-xs font-semibold bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white transition shadow-sm flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Add {numericPendingQty} {pendingItem.unit}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
 
         {/* Paste CSV Sub-Modal */}
         {isPasteModalOpen && (

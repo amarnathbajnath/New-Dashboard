@@ -313,7 +313,7 @@ export default function App() {
     });
 
     handleUpdateSections(updatedSections);
-    showToast(`Added ${itemData.description} to section`);
+    showToast(`Added ${itemData.quantity} × ${itemData.description} to section`);
   };
 
   const handleUpdateCatalog = (newCatalog: CatalogItem[]) => {
@@ -354,10 +354,11 @@ export default function App() {
   const totals = calculateQuoteTotals(quote);
 
   return (
-    <div className={`min-h-screen flex flex-col font-sans ${theme === 'dark' ? 'dark bg-[#0b111e] text-slate-100' : 'bg-slate-50 text-slate-900'}`}>
+    <div className={`min-h-screen flex flex-col font-sans print:min-h-0 print:h-auto print:bg-white ${theme === 'dark' ? 'dark bg-[#0b111e] text-slate-100' : 'bg-slate-50 text-slate-900'}`}>
+      <div className={isPdfPreviewOpen ? 'print:hidden flex flex-col flex-1' : 'flex flex-col flex-1'}>
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed top-4 right-4 z-50 flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900/95 border border-blue-500/50 text-white text-xs font-medium shadow-2xl shadow-blue-900/40 animate-in fade-in slide-in-from-top-2 duration-200">
+        <div className="fixed top-4 right-4 z-50 flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900/95 border border-blue-500/50 text-white text-xs font-medium shadow-2xl shadow-blue-900/40 animate-in fade-in slide-in-from-top-2 duration-200 print:hidden">
           {toastMessage.type === 'info' ? (
             <Info className="w-4 h-4 text-blue-400" />
           ) : (
@@ -444,6 +445,7 @@ export default function App() {
           {companySettings.companyName} • Job Costing &amp; Estimator • All calculations automatically synchronized
         </p>
       </footer>
+      </div>
 
       {/* Modals */}
       <AddSectionModal
